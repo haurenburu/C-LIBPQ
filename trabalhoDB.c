@@ -6,26 +6,49 @@
 void print_tuplas(PGresult* res);
 void cadastrarQuestoes();
 void buscarQuestao();
+void listarQuestao();
 void menu();
 // Variavel global "command" para não precisar passar por função/return
 char command[500];
 // main é o main lol
 int main () {
+	FILE* file = fopen("config.conf", "r"); /* should check the result */
+    char line[256];
+	char linha[4][200];
 	
+	int k = 0,t=0;
+    for(k = 0; k < 4; k++){
+    	strcpy(linha[k], fgets(line, sizeof(line), file));
+    	t = strlen(linha[k]);
+    	if(k <3){
+    	linha[k][t-1] = '\0';
+    	}
+	}
+	sprintf(line,"host=%s dbname=%s user=%s password=%s", linha[0],linha[1],linha[2],linha[3]);
+	// -----------------------------------
 	const char *conninfo; // ponteiro das informacoes da conecção
     PGconn     *conn; // pega as informações da conecção vai que da algo errado né...
     PGresult   *res; // resultado da query meio que caso volte algo ele vai printar, se não... sei la!
     int         nFields; // eu acho que é usado pra printar as tuplas
     int         i, // algum for certeza...
                 j; // matriz kek
-    // TODO: fazer a parte de pegar do arquivo
-	conninfo = "host=localhost dbname=postgres user=postgres password=1998"; // variavel que recebe a string de conecção
-	conn = PQconnectdb(conninfo); // chama a funcao de conecção e returna o valor para a variavel conn
+                
+	//sprintf(conninfo, "host=%s dbname=%s user=%s password=%s", linha[0],linha[1],linha[2],linha[3]);
+	conninfo = line;
+	//conninfo = "host=localhost dbname=postgres user=postgres password=1998"; // variavel que recebe a string de conecção
 	
-	(PQstatus(conn) != CONNECTION_OK) ? printf("Falhou!\n") : printf("Conectado!\n"); // printa se a conecção foi feita...
+	conn = PQconnectdb(conninfo); // chama a funcao de conecção e returna o valor para a variavel conn
+
+	if(PQstatus(conn) != CONNECTION_OK) {
+		printf("Falhou!");
+		return 0;
+	} else {
+		printf("Conectado!\n");
+	}
+	
 	system("pause"); // rapido demais pra ler?
 	menu(); // chama o menu para criação da query
-	printf("%s", command); //mostra o com mando por enquanto TODO: remover isso...
+	//printf("%s", command); //mostra o com mando por enquanto TODO: remover isso...
 	res = PQexec(conn, command); // executa a query recebido pelo menu() na conecção especificada...
 	// oque aconteceu com a query? vai mostrar ai em baixo
 	switch (PQresultStatus(res)) { 
@@ -95,13 +118,13 @@ void cadastrarQuestoes() {
 	gets(questao.resposta); // grava na variavel
 	// monstra a query com as coisas que o usuario digitou
 	//sprintf(command, "INSERT INTO public.questoes(id, dominio, tema, dificuldade, texto, resposta) VALUES (%d, '{%s}', '{%s}', %d, '{%s}', '{%s}');", questao.id, questao.dominio, questao.tema, questao.dificuldade, questao.texto, questao.resposta);
-	sprintf(command, "INSERT INTO public.questoes(id, dominio, tema, dificuldade, texto, resposta) VALUES (2, '{%s}', '{%s}', %d, '{%s}', '{%s}');", questao.dominio, questao.tema, questao.dificuldade, questao.texto, questao.resposta);
+	sprintf(command, "INSERT INTO public.questoes(id, dominio, tema, dificuldade, texto, resposta) VALUES (2, '%s', '%s', %d, '%s', '%s');", questao.dominio, questao.tema, questao.dificuldade, questao.texto, questao.resposta);
 }
 void buscarQuestao() {
 	system("cls || clean"); // limpa a tela vale lembrar que essa parte vai funcionar no windows/linux
 	printf("Buscar!\n"); // mostra a seção do menu no caso, buscar TODO: mudar esse nome
 	char textoQuery[150]; // também acho que é pouco texto.... TODO: mudar o valor pra uns 300
-	short opcao = 0; // variavel controladora (sentinela que fala né?)
+	char opcao = 0; // variavel controladora (sentinela que fala né?)
 	do { // loop basico do menu
 		printf("1-Tema\n2-Dominio\n3-Dificuldade\n4-Enunciado\n5-Sair\n>> ");
 		scanf("%d", &opcao); // recebe a entrada do usuario
@@ -137,7 +160,7 @@ void buscarQuestao() {
 				printf("Enunciado!\n>>"); // so pra mostrar onde o usuario está
 				scanf("%s", textoQuery);
 				// monta a query e "exporta" para variavel global
-				sprintf(command, "SELECT * FROM public.questoes WHERE enunciado LIKE '%%%s%%';\n ", textoQuery );
+				sprintf(command, "SELECT * FROM public.questoes WHERE texto LIKE '%%%s%%';\n ", textoQuery );
 				break;
 			case 5: 
 				break;
@@ -147,25 +170,62 @@ void buscarQuestao() {
 	} while(opcao != 5); // saiu do loop? espero que sim...
 	
 }
+void listarQuestao() {
+	system("cls || clean"); // limpa a tela vale lembrar que essa parte vai funcionar no windows/linux
+	printf("Buscar!\n"); // mostra a seção do menu no caso, buscar TODO: mudar esse nome
+	char textoQuery[150]; // também acho que é pouco texto.... TODO: mudar o valor pra uns 300
+	char opcao = 0; // variavel controladora (sentinela que fala né?)
+	do { // loop basico do menu
+		printf("1-Temas\n2-Dominios\n3-Dificuldades\n4-Sair\n>> ");
+		scanf("%d", &opcao); // recebe a entrada do usuario
+		// eae oque vai fazer? vamo saber agora...
+		switch(opcao) {
+			case 1:
+				opcao = 4; // garante que o loop so executa uma vez
+				system("cls || clean"); // limpa a tela vale lembrar que essa parte vai funcionar no windows/linux
+				strcpy(command, "SELECT tema FROM public.questoes;");
+				break;
+			case 2:
+				opcao = 4; // garante que o loop so executa uma vez
+				system("cls || clean"); // limpa a tela vale lembrar que essa parte vai funcionar no windows/linux
+				strcpy(command, "SELECT dominio FROM public.questoes;");
+				break;
+			case 3:
+				opcao = 4; // garante que o loop so executa uma vez
+				system("cls || clean"); // limpa a tela vale lembrar que essa parte vai funcionar no windows/linux
+				strcpy(command, "SELECT dificuldade FROM public.questoes;");
+				break;
+			case 4: 
+				break;
+			default:
+				printf("Opcao invalida"); // o usuario sempre quer te ferrar
+		}
+		
+	} while(opcao != 4); // saiu do loop? espero que sim...
+}
+
 void menu() {
 	system("cls || clear");
 	short opcao = 0;
 	do {
-		printf("1-Cadastrar questao\n2-Buscar questao\n3-Sair\n>> "); // menuzera
+		printf("1-Cadastrar questao\n2-Buscar questao\n3-Listar\n4-Sair\n>> "); // menuzera
 		scanf("%d", &opcao);
 		switch(opcao){
 			case 1: 
-				opcao = 3; // garante que so execute uma vez
+				opcao = 4; // garante que so execute uma vez
 				cadastrarQuestoes(); // executa a rotina de cadastrar questao
 				break; // pula fora
 			case 2:
-				opcao = 3; // garante que so execute uma vez
+				opcao = 4; // garante que so execute uma vez
 				buscarQuestao(); // executa a rotina de buscar por uma questao
 				break; // pula fora
 			case 3:
+				opcao = 4;
+				listarQuestao();
+			case 4:
 				break; // pula fora
 			default:
 				printf("Opcao invalida\n"); // que isso usuario....
 		}
-	} while(opcao != 3); // sai do loop
+	} while(opcao != 4); // sai do loop
 }
